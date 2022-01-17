@@ -11,6 +11,14 @@
   resource_name_prefix                    = "nct-NCE-lambda"
 }
 
+
+data "aws_secretsmanager_secret" "user_secrets" {
+  name = var.user_secret
+}
+data "aws_secretsmanager_secret_version" "current_user_secrets" {
+  secret_id = data.aws_secretsmanager_secret.user_secrets.id
+}   
+
 data "aws_caller_identity" "current" {}
 
 resource "aws_iam_role" "lambda_exec_role" {
@@ -330,6 +338,67 @@ EOF
 resource "aws_iam_role_policy_attachment" "KendraAccessS3" {
   role       = aws_iam_role.kendra_lambda_exec_role.name
   policy_arn = aws_iam_policy.KendraAccessS3.arn
+}
+
+############## IAM policy for enabling Custom Document Enrichment on Kendra ######################
+resource "aws_iam_policy" "KendraEnrichment" {
+  name        = "KendraCustomDocumentEnrichment_policy"
+  path        = "/"
+  description = "IAM policy for enabling Custom Document Enrichment in Kendra"
+
+  policy = <<EOF
+{
+  "Version": "2012-10-17",
+  "Statement": [{
+    "Action": [
+      "s3:GetObject",
+      "s3:PutObject"
+    ],
+    "Resource": [
+      "arn:aws:s3:::*/*"
+    ],
+    "Effect": "Allow"
+  },
+  {
+    "Action": [
+      "s3:ListBucket"
+    ],
+    "Resource": [
+      "arn:aws:s3:::*"
+    ],
+    "Effect": "Allow"
+  },
+  {
+    "Effect": "Allow",
+    "Action": [
+      "kms:Decrypt",
+      "kms:GenerateDataKey"
+    ],
+    "Resource": [
+      "arn:aws:kms:${var.region}:${data.aws_caller_identity.current.account_id}:key/*"
+    ]
+  },
+  {
+    "Effect": "Allow",
+    "Action": [
+      "lambda:InvokeFunction"
+    ],
+    "Resource": "arn:aws:lambda:${var.region}:${data.aws_caller_identity.current.account_id}:function:*"
+  }]
+}
+EOF
+  tags = {
+    Name            = "KendraCustomDocumentEnrichment_policy"
+    Application     = "Nasuni Analytics Connector with Kendra"
+    Developer       = "Nasuni"
+    PublicationType = "Nasuni Labs"
+    Version         = "V 0.1"
+  }
+}
+
+resource "aws_iam_role_policy_attachment" "KendraEnrichment" {
+  role       = aws_iam_role.kendra_lambda_exec_role.name
+  policy_arn = aws_iam_policy.KendraEnrichment.arn
 }
 
 
