@@ -22,7 +22,7 @@ data "aws_secretsmanager_secret_version" "current_user_secrets" {
 data "aws_caller_identity" "current" {}
 
 resource "aws_iam_role" "lambda_exec_role" {
-  name        = "${local.resource_name_prefix}-lambda_exec_role-${local.lambda_code_file_name_without_extension}-${random_id.nac_unique_stack_id.hex}"
+  name        = "${local.resource_name_prefix}-lambda_exec_role-${local.lambda_code_file_name_without_extension}-${random_id.kendra_unique_id.hex}"
   path        = "/"
   description = "Allows Lambda Function to call AWS services on your behalf."
 
@@ -42,7 +42,7 @@ resource "aws_iam_role" "lambda_exec_role" {
 EOF
 
   tags = {
-    Name            = "${local.resource_name_prefix}-lambda_exec-${local.lambda_code_file_name_without_extension}-${random_id.nac_unique_stack_id.hex}"
+    Name            = "${local.resource_name_prefix}-lambda_exec-${local.lambda_code_file_name_without_extension}-${random_id.kendra_unique_id.hex}"
     Application     = "Nasuni Analytics Connector with Kendra"
     Developer       = "Nasuni"
     PublicationType = "Nasuni Labs"
@@ -51,7 +51,7 @@ EOF
 }
 
 resource "aws_iam_role" "kendra_lambda_exec_role" {
-  name        = "${local.resource_name_prefix}-kendra_exec_role-${local.lambda_code_file_name_without_extension}-${random_id.nac_unique_stack_id.hex}"
+  name        = "${local.resource_name_prefix}-kendra_exec_role-${local.lambda_code_file_name_without_extension}-${random_id.kendra_unique_id.hex}"
   path        = "/"
   description = "Allows Kendra Function to call AWS services on your behalf."
 
@@ -71,7 +71,7 @@ resource "aws_iam_role" "kendra_lambda_exec_role" {
 EOF
 
   tags = {
-    Name            = "${local.resource_name_prefix}-kendra_exec-${local.lambda_code_file_name_without_extension}-${random_id.nac_unique_stack_id.hex}"
+    Name            = "${local.resource_name_prefix}-kendra_exec-${local.lambda_code_file_name_without_extension}-${random_id.kendra_unique_id.hex}"
     Application     = "Nasuni Analytics Connector with Kendra"
     Developer       = "Nasuni"
     PublicationType = "Nasuni Labs"
@@ -83,11 +83,11 @@ EOF
 
 ############## CloudWatch Integration for Lambda ######################
 resource "aws_cloudwatch_log_group" "lambda_log_group" {
-  name              = "/aws/lambda/${local.resource_name_prefix}-${local.lambda_code_file_name_without_extension}-${random_id.nac_unique_stack_id.hex}"
+  name              = "/aws/lambda/${local.resource_name_prefix}-${local.lambda_code_file_name_without_extension}-${random_id.kendra_unique_id.hex}"
   retention_in_days = 14
 
   tags = {
-    Name            = "${local.resource_name_prefix}-lambda_log_group-${local.lambda_code_file_name_without_extension}-${random_id.nac_unique_stack_id.hex}"
+    Name            = "${local.resource_name_prefix}-lambda_log_group-${local.lambda_code_file_name_without_extension}-${random_id.kendra_unique_id.hex}"
     Application     = "Nasuni Analytics Connector with Kendra"
     Developer       = "Nasuni"
     PublicationType = "Nasuni Labs"
@@ -97,7 +97,7 @@ resource "aws_cloudwatch_log_group" "lambda_log_group" {
 
 # AWS Lambda Basic Execution Role
 resource "aws_iam_policy" "lambda_logging" {
-  name        = "${local.resource_name_prefix}-lambda_logging_policy-${local.lambda_code_file_name_without_extension}-${random_id.nac_unique_stack_id.hex}"
+  name        = "${local.resource_name_prefix}-lambda_logging_policy-${local.lambda_code_file_name_without_extension}-${random_id.kendra_unique_id.hex}"
   path        = "/"
   description = "IAM policy for logging from a lambda"
 
@@ -118,7 +118,7 @@ resource "aws_iam_policy" "lambda_logging" {
 }
 EOF
   tags = {
-    Name            = "${local.resource_name_prefix}-lambda_logging_policy-${local.lambda_code_file_name_without_extension}-${random_id.nac_unique_stack_id.hex}"
+    Name            = "${local.resource_name_prefix}-lambda_logging_policy-${local.lambda_code_file_name_without_extension}-${random_id.kendra_unique_id.hex}"
     Application     = "Nasuni Analytics Connector with Kendra"
     Developer       = "Nasuni"
     PublicationType = "Nasuni Labs"
@@ -133,7 +133,7 @@ resource "aws_iam_role_policy_attachment" "lambda_logging" {
 
 ############## IAM policy for accessing S3 from a lambda ######################
 resource "aws_iam_policy" "s3_GetObject_access" {
-  name        = "${local.resource_name_prefix}-s3_GetObject_access_policy-${local.lambda_code_file_name_without_extension}-${random_id.nac_unique_stack_id.hex}"
+  name        = "${local.resource_name_prefix}-s3_GetObject_access_policy-${local.lambda_code_file_name_without_extension}-${random_id.kendra_unique_id.hex}"
   path        = "/"
   description = "IAM policy for accessing S3 from a lambda"
 
@@ -152,7 +152,7 @@ resource "aws_iam_policy" "s3_GetObject_access" {
 }
 EOF
   tags = {
-    Name            = "${local.resource_name_prefix}-s3_GetObject_access_policy-${local.lambda_code_file_name_without_extension}-${random_id.nac_unique_stack_id.hex}"
+    Name            = "${local.resource_name_prefix}-s3_GetObject_access_policy-${local.lambda_code_file_name_without_extension}-${random_id.kendra_unique_id.hex}"
     Application     = "Nasuni Analytics Connector with Kendra"
     Developer       = "Nasuni"
     PublicationType = "Nasuni Labs"
@@ -169,7 +169,7 @@ resource "aws_iam_role_policy_attachment" "s3_GetObject_access" {
 
 ############## IAM policy for accessing Secret Manager from a lambda ######################
 resource "aws_iam_policy" "GetSecretValue_access" {
-  name        = "GetSecretValue_access_policy"
+  name        = "GetSecretValue_access_policy-${random_id.kendra_unique_id.hex}"
   path        = "/"
   description = "IAM policy for accessing secretmanager from a lambda"
 
@@ -187,7 +187,7 @@ resource "aws_iam_policy" "GetSecretValue_access" {
             "Sid": "VisualEditor1",
             "Effect": "Allow",
             "Action": "secretsmanager:GetSecretValue",
-            "Resource": "${data.aws_secretsmanager_secret.internal_secret.arn}"
+            "Resource": "${data.aws_secretsmanager_secret.user_secrets.arn}"
         }
     ]
 }
@@ -220,7 +220,7 @@ data "aws_iam_policy_document" "kendra-assume-role-policy" {
 
 
 resource "aws_iam_policy" "NAC_Kendra_CloudWatch" {
-  name        = "NAC_Kendra_CloudWatch_access_policy"
+  name        = "NAC_Kendra_CloudWatch_access_policy-${random_id.kendra_unique_id.hex}"
   path        = "/"
   description = "IAM policy for enabling Kendra to access CloudWatch Logs"
 
@@ -289,7 +289,7 @@ resource "aws_iam_role_policy_attachment" "NAC_Kendra_CloudWatch" {
 
 ############## IAM policy for enabling Kendra to access and index S3 ######################
 resource "aws_iam_policy" "KendraAccessS3" {
-  name        = "KendraAccessS3_access_policy"
+  name        = "KendraAccessS3_access_policy-${random_id.kendra_unique_id.hex}"
   path        = "/"
   description = "IAM policy for enabling Kendra to access and index S3"
 
@@ -431,15 +431,21 @@ resource "aws_iam_role_policy_attachment" "AmazonS3FullAccess" {
   policy_arn = data.aws_iam_policy.AmazonS3FullAccess.arn
 }
 
+
 resource "null_resource" "kendra_launch" {
   provisioner "local-exec" {
-    command = "python kendra_launch.py ${var.admin_secret} "
+    command = "python3 kendra_launch.py ${var.admin_secret} "
   }
   provisioner "local-exec" {
     when    = destroy
-    command = "python kendra_destroy.py"
+    command = "python3 kendra_destroy.py"
   }
 }
+
+resource "random_id" "kendra_unique_id" {
+  byte_length = 3
+}
+
 
 
 
