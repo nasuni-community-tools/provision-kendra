@@ -1,0 +1,4 @@
+
+[dev]
+pytest>=2.7.1
+testtools>=1.8.0

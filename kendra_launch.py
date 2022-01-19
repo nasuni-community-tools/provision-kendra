@@ -7,10 +7,15 @@ import time
 import hcl
 import os
 import sys
+import random
 
-admin_secret = sys.argv
+admin_secret = sys.argv[1]
+role_arn = sys.argv[2]
 
-#Load variables from kendra variables file
+print(admin_secret)
+print(role_arn)
+
+#Load variables from kendra variables   file
 with open('kendra.tfvars', 'r') as fp: 
     obj = hcl.load(fp) 
     user_secret = obj['user_secret']
@@ -34,14 +39,13 @@ s3_bucket_name = secrets['destination_bucket']
 print("Create an index")
 
 description = "Index created for the volume named "+volume_name +" based on the user secrets stored in "+user_secret
-index_name = "Kendra_"+volume_name
-index_role_arn = "arn:aws:iam::"+account_id+":role/NAC_Kendra_CloudWatch_access_policy"
+index_name = "Kendra"+volume_name+str(random.randrange(100))
 
 try:
     index_response = kendra.create_index(
         Description = description,
         Name = index_name,
-        RoleArn = index_role_arn
+        RoleArn = role_arn
     )
 
     pprint.pprint(index_response)
@@ -67,6 +71,8 @@ try:
     data_source_name = volume_name
     data_source_description = volume_name + " is the volume being indexed. Set up by "+aws_profile
     data_source_type = "S3"
+
+    #Creatae an S3 data source role
     data_source_role_arn = "arn:aws:iam::"+account_id+":role/KendraAccessS3_access_policy"
 
     configuration = {"S3Configuration":
@@ -85,7 +91,6 @@ try:
         Description = description,
         RoleArn = data_source_role_arn,
         Type = data_source_type,
-
         IndexId = index_id
     )
 
@@ -138,27 +143,25 @@ except  ClientError as e:
 
 print("Create an experience")
 
-name = "Volume Search powered by Kendra"
+name = "VolumeSearchPoweredByKendra"
 description = "Volume Search"
+'''
 configuration = {"ExperienceConfiguration":
         [{
-            "ContentSourceConfiguration":{"DataSourceIds":[data_source_id]},
-            "UserIdentityConfiguration":"Username"
+            "ContentSourceConfiguration":{"DataSourceIds":[data_source_id]}
         }]
     }
-
+'''
 try:
     experience_response = kendra.create_experience(
         Name = name,
         Description = description,
         IndexId = index_id,
-        RoleArn = index_role_arn,
-        Configuration = configuration
+        RoleArn = role_arn
     )
 
     pprint.pprint(experience_response)
     experience_id = experience_response['Id']
-    experience_endpoints = experience_response["Endpoints"]
 
     print("Wait for Kendra to create the experience.")
 
@@ -172,6 +175,7 @@ try:
         print("    Creating experience. Status: "+status)
         time.sleep(60)
         if status != "CREATING":
+            experience_endpoints = experience_response["Endpoints"]
             break
 
 except  ClientError as e:
@@ -195,7 +199,7 @@ kwargs = {'SecretId': admin_secret}
 admin_secret_response = secretsmanager.get_secret_value(**kwargs)
 admin_secrets = eval(admin_secret_response['SecretString'])
 admin_secrets[data_source_role_arn]=user_secret
-admin_secrets[index_role_arn]=user_secret
+admin_secrets[role_arn]=user_secret
 admin_secrets[index_id]=user_secret
 admin_secrets[data_source_id]=user_secret
 admin_secrets[experience_id]=user_secret

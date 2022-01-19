@@ -8,7 +8,9 @@
   lambda_code_file_name_without_extension = "nac-kendra-discovery"
   lambda_code_extension                   = ".py"
   handler                                 = "lambda_handler"
-  resource_name_prefix                    = "nct-NCE-lambda"
+  resource_name_prefix                    = "NACScheduler"
+  discovery_source_bucket                 = jsondecode(nonsensitive(data.aws_secretsmanager_secret_version.current_user_secrets.secret_string))["destination_bucket"]
+
 }
 
 
@@ -50,7 +52,7 @@ EOF
   }
 }
 
-resource "aws_iam_role" "kendra_lambda_exec_role" {
+resource "aws_iam_role" "kendra_exec_role" {
   name        = "${local.resource_name_prefix}-kendra_exec_role-${local.lambda_code_file_name_without_extension}-${random_id.kendra_unique_id.hex}"
   path        = "/"
   description = "Allows Kendra Function to call AWS services on your behalf."
@@ -281,7 +283,7 @@ EOF
 
 
 resource "aws_iam_role_policy_attachment" "NAC_Kendra_CloudWatch" {
-  role       = aws_iam_role.kendra_lambda_exec_role.name
+  role       = aws_iam_role.kendra_exec_role.name
   policy_arn = aws_iam_policy.NAC_Kendra_CloudWatch.arn
 }
 
@@ -302,7 +304,7 @@ resource "aws_iam_policy" "KendraAccessS3" {
                 "s3:GetObject"
             ],
             "Resource": [
-                "arn:aws:s3:::bucket name/*"
+                "arn:aws:s3:::${local.discovery_source_bucket}/*"
             ],
             "Effect": "Allow"
         },
@@ -311,7 +313,7 @@ resource "aws_iam_policy" "KendraAccessS3" {
                 "s3:ListBucket"
             ],
             "Resource": [
-                "arn:aws:s3:::bucket name"
+                "arn:aws:s3:::${local.discovery_source_bucket}"
             ],
             "Effect": "Allow"
         },
@@ -336,7 +338,7 @@ EOF
 }
 
 resource "aws_iam_role_policy_attachment" "KendraAccessS3" {
-  role       = aws_iam_role.kendra_lambda_exec_role.name
+  role       = aws_iam_role.kendra_exec_role.name
   policy_arn = aws_iam_policy.KendraAccessS3.arn
 }
 
@@ -397,7 +399,7 @@ EOF
 }
 
 resource "aws_iam_role_policy_attachment" "KendraEnrichment" {
-  role       = aws_iam_role.kendra_lambda_exec_role.name
+  role       = aws_iam_role.kendra_exec_role.name
   policy_arn = aws_iam_policy.KendraEnrichment.arn
 }
 
@@ -434,7 +436,7 @@ resource "aws_iam_role_policy_attachment" "AmazonS3FullAccess" {
 
 resource "null_resource" "kendra_launch" {
   provisioner "local-exec" {
-    command = "python3 kendra_launch.py ${var.admin_secret} "
+    command = "python3 kendra_launch.py ${var.admin_secret} ${aws_iam_role.kendra_exec_role.arn}"
   }
   provisioner "local-exec" {
     when    = destroy
