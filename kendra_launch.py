@@ -148,7 +148,8 @@ description = "Volume Search"
 '''
 configuration = {"ExperienceConfiguration":
         [{
-            "ContentSourceConfiguration":{"DataSourceIds":[data_source_id]}
+            "ContentSourceConfiguration":{"DataSourceIds":[data_source_id]},
+            "UserIdentityConfiguration":"Username"
         }]
     }
 '''
